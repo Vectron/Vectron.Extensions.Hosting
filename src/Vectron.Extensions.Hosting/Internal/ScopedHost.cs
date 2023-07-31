@@ -44,7 +44,7 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(scopeLifetime);
         ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(this.scopedHostLifetime);
+        ArgumentNullException.ThrowIfNull(scopedHostLifetime);
 
         Services = services;
         this.scopeLifetime = (scopeLifetime as ScopeLifetime)!;
