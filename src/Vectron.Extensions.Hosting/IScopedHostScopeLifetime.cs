@@ -3,7 +3,7 @@ namespace Vectron.Extensions.Hosting;
 /// <summary>
 /// Allows consumers to be notified of scope lifetime events.
 /// </summary>
-internal interface IScopedHostScopeLifetime
+public interface IScopedHostScopeLifetime
 {
     /// <summary>
     /// Gets a <see cref="CancellationToken"/> that is triggered when the scope host has fully started.
