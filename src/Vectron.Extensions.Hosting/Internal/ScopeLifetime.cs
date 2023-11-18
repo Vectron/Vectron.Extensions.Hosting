@@ -6,22 +6,19 @@ namespace Vectron.Extensions.Hosting.Internal;
 /// <summary>
 /// Allows consumers to perform cleanup during a graceful shutdown.
 /// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="ScopeLifetime"/> class.
+/// </remarks>
+/// <param name="logger">A <see cref="ILogger"/>.</param>
 [DebuggerDisplay("ScopeStarted = {ScopeStarted.IsCancellationRequested}, " +
     "ScopeStopping = {ScopeStopping.IsCancellationRequested}, " +
     "ScopeStopped = {ScopeStopped.IsCancellationRequested}")]
-public sealed class ScopeLifetime : IScopedHostScopeLifetime, IDisposable
+public sealed class ScopeLifetime(ILogger<ScopeLifetime> logger) : IScopedHostScopeLifetime, IDisposable
 {
-    private readonly ILogger<ScopeLifetime> logger;
     private readonly CancellationTokenSource startedSource = new();
     private readonly CancellationTokenSource stoppedSource = new();
     private readonly CancellationTokenSource stoppingSource = new();
     private bool disposed;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ScopeLifetime"/> class.
-    /// </summary>
-    /// <param name="logger">A <see cref="ILogger"/>.</param>
-    public ScopeLifetime(ILogger<ScopeLifetime> logger) => this.logger = logger;
 
     /// <inheritdoc/>
     public CancellationToken ScopeStarted => startedSource.Token;
