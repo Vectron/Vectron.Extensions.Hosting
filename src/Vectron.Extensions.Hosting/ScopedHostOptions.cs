@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Hosting;
-
 namespace Vectron.Extensions.Hosting;
 
 /// <summary>
@@ -7,22 +5,6 @@ namespace Vectron.Extensions.Hosting;
 /// </summary>
 public class ScopedHostOptions
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ScopedHostOptions"/> class.
-    /// </summary>
-    public ScopedHostOptions() => BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
-
-    /// <summary>
-    /// Gets or sets the behavior the <see cref="IScopedHost"/> will follow when any of its
-    /// <see cref="BackgroundService"/> instances throw an unhandled exception.
-    /// </summary>
-    /// <remarks>Defaults to <see cref="BackgroundServiceExceptionBehavior.StopHost"/>.</remarks>
-    public BackgroundServiceExceptionBehavior BackgroundServiceExceptionBehavior
-    {
-        get;
-        set;
-    }
-
     /// <summary>
     /// Gets or sets a value indicating whether determines if the <see cref="IScopedHost"/> will start registered instances of <see cref="IScopedHostedService"/> concurrently or sequentially. Defaults to false.
     /// </summary>

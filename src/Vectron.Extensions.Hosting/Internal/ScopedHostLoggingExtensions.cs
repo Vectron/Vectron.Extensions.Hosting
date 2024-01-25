@@ -7,12 +7,6 @@ namespace Vectron.Extensions.Hosting;
 /// </summary>
 internal static partial class ScopedHostLoggingExtensions
 {
-    [LoggerMessage(EventId = 9, Level = LogLevel.Error, Message = "BackgroundService failed")]
-    public static partial void BackgroundServiceFaulted(this ILogger logger, Exception exception);
-
-    [LoggerMessage(EventId = 10, Level = LogLevel.Critical, Message = "The HostOptions.BackgroundServiceExceptionBehavior is configured to StopHost. A BackgroundService has thrown an unhandled exception, and the IHost instance is stopping. To avoid this behavior, configure this to Ignore; however the BackgroundService will not be restarted.")]
-    public static partial void BackgroundServiceStoppingHost(this ILogger logger, Exception exception);
-
     [LoggerMessage(EventId = 11, Level = LogLevel.Error, Message = "Hosting failed to start")]
     public static partial void HostedServiceStartupFaulted(this ILogger logger, Exception exception);
 

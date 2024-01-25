@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -153,14 +152,9 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
                 concurrent,
                 abortOnFirstException,
                 exceptions,
-                async (service, token) =>
+            async (service, token) => await service.StartAsync(token).ConfigureAwait(false),
                 {
                     await service.StartAsync(token).ConfigureAwait(false);
-
-                    if (service is BackgroundService backgroundService)
-                    {
-                        _ = TryExecuteBackgroundServiceAsync(backgroundService);
-                    }
                 },
                 token).ConfigureAwait(false);
 
@@ -417,38 +411,5 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
         }
 
         return result;
-    }
-
-    private async Task TryExecuteBackgroundServiceAsync(BackgroundService backgroundService)
-    {
-        // backgroundService.ExecuteTask may not be set (e.g. if the derived class doesn't call base.StartAsync)
-        var backgroundTask = backgroundService.ExecuteTask;
-        if (backgroundTask is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await backgroundTask.ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            // When the host is being stopped, it cancels the background services. This isn't an
-            // error condition, so don't log it as an error.
-            if (stopCalled && backgroundTask.IsCanceled && ex is OperationCanceledException)
-            {
-                return;
-            }
-
-            logger.BackgroundServiceFaulted(ex);
-            if (options.BackgroundServiceExceptionBehavior == BackgroundServiceExceptionBehavior.StopHost)
-            {
-                logger.BackgroundServiceStoppingHost(ex);
-
-                // This catches all exceptions and does not re-throw.
-                scopeLifetime.StopScope();
-            }
-        }
     }
 }
