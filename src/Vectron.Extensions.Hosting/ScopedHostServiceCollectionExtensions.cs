@@ -20,6 +20,7 @@ public static class ScopedHostServiceCollectionExtensions
         services.TryAddScoped<IScopedHostScopeLifetime, ScopedHostScopeLifetime>();
         services.TryAddScoped<IScopedHostLifetime, NullLifetime>();
         services.TryAddScoped<IScopedHost, ScopedHost>();
+        services.TryAddSingleton<IScopeLifeTime, ScopeLifeTime>();
         return services;
     }
 
