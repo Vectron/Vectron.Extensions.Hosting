@@ -33,7 +33,7 @@ public static class ScopedHostServiceCollectionExtensions
         where THostedService : class, IScopedHostedService
     {
         _ = services.AddScopedHost();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IScopedHostedService, THostedService>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IScopedHostedService, THostedService>());
         return services;
     }
 
@@ -48,7 +48,7 @@ public static class ScopedHostServiceCollectionExtensions
         where THostedService : class, IScopedHostedService
     {
         _ = services.AddScopedHost();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IScopedHostedService>(implementationFactory));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IScopedHostedService>(implementationFactory));
         return services;
     }
 }
