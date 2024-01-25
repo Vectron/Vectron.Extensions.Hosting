@@ -3,7 +3,7 @@ namespace Vectron.Extensions.Hosting;
 /// <summary>
 /// A program abstraction.
 /// </summary>
-public interface IScopedHost : IDisposable
+public interface IScopedHost
 {
     /// <summary>
     /// Gets the services configured for the program />).

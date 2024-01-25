@@ -14,7 +14,7 @@ namespace Vectron.Extensions.Hosting.Internal;
     "Design",
     "MA0051:Method is too long",
     Justification = "Code copied from https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Hosting/src/Internal/Host.cs")]
-internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
+internal sealed partial class ScopedHost : IScopedHost
 {
     private readonly ILogger<ScopedHost> logger;
     private readonly ScopedHostOptions options;
@@ -60,37 +60,6 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
     public IServiceProvider Services
     {
         get;
-    }
-
-    /// <inheritdoc/>
-    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
-
-    /// <inheritdoc/>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "IDisposableAnalyzers.Correctness",
-        "IDISP007:Don't dispose injected",
-        Justification = "The function is supposed to dispose the injected")]
-    public async ValueTask DisposeAsync()
-    {
-        // Dispose the service provider
-        await DisposeAsync(Services).ConfigureAwait(false);
-
-        static async ValueTask DisposeAsync(object o)
-        {
-            switch (o)
-            {
-                case IAsyncDisposable asyncDisposable:
-                    await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-                    break;
-
-                case IDisposable disposable:
-                    disposable.Dispose();
-                    break;
-
-                default:
-                    break;
-            }
-        }
     }
 
     /// <summary>
