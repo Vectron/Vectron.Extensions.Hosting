@@ -29,25 +29,13 @@ public static class ScopedHostExtensions
     /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
     public static async Task WaitForShutdownAsync(this IScopedHost host, CancellationToken token = default)
     {
-        var scopeLifetime = host.Services.GetRequiredService<IScopedHostScopeLifetime>();
-        var tokenRegistration = token.Register(state => ((IScopedHostScopeLifetime)state!).StopScope(), scopeLifetime);
-        await using (tokenRegistration.ConfigureAwait(false))
-        {
-            var waitForStop = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var stoppingTokenRegistration = scopeLifetime.ScopeStopping.Register(
-                obj =>
-                {
-                    var tcs = (TaskCompletionSource<object?>)obj!;
-                    _ = tcs.TrySetResult(null);
-                },
-                waitForStop);
+        var scopedHostScopeLifetime = host.Services.GetRequiredService<IScopedHostScopeLifetime>();
+        _ = token.Register(state => (state as IScopedHostScopeLifetime)?.StopScope(), scopedHostScopeLifetime);
 
-            _ = await waitForStop.Task.ConfigureAwait(false);
-
-            // Host will use its default ShutdownTimeout if none is specified. The cancellation
-            // token may have been triggered to unblock waitForStop. Don't pass it here because that
-            // would trigger an abortive shutdown.
-            await host.StopAsync(CancellationToken.None).ConfigureAwait(false);
-        }
+        var waitForStop = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ = scopedHostScopeLifetime.ScopeStopping.Register(
+            state => (state as TaskCompletionSource)!.SetResult(),
+            waitForStop);
+        await waitForStop.Task.ConfigureAwait(false);
     }
 }
