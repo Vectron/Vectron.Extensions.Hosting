@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Vectron.Extensions.Hosting;
+namespace Vectron.Extensions.Hosting.Internal;
 
 /// <summary>
 /// The logging part for the scoped host.
