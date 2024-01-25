@@ -22,7 +22,6 @@ internal sealed class ScopedHost : IScopedHost
     private IEnumerable<IScopedHostedLifecycleService>? hostedLifecycleServices;
     private IEnumerable<IScopedHostedService>? hostedServices;
     private bool hostStarting;
-    private volatile bool stopCalled;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ScopedHost"/> class.
@@ -172,7 +171,6 @@ internal sealed class ScopedHost : IScopedHost
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        stopCalled = true;
         logger.Stopping();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (options.ShutdownTimeout != Timeout.InfiniteTimeSpan)
@@ -183,7 +181,7 @@ internal sealed class ScopedHost : IScopedHost
         cancellationToken = cts.Token;
 
         List<Exception> exceptions = [];
-        if (!hostStarting) // Started?
+        if (!hostStarting)
         {
             // Call IScopedScopeLifetime.ScopeStopping.
             // This catches all exceptions and does not re-throw.
