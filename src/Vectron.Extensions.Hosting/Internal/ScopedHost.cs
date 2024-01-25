@@ -21,6 +21,7 @@ internal sealed class ScopedHost : IScopedHost
     private readonly ScopedHostScopeLifetime scopedHostScopeLifetime;
     private IEnumerable<IScopedHostedLifecycleService>? hostedLifecycleServices;
     private IEnumerable<IScopedHostedService>? hostedServices;
+    private bool hostStarting;
     private volatile bool stopCalled;
 
     /// <summary>
@@ -39,7 +40,6 @@ internal sealed class ScopedHost : IScopedHost
         IOptions<ScopedHostOptions> options)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(scopeLifetime);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(scopedHostLifetime);
 
@@ -70,96 +70,87 @@ internal sealed class ScopedHost : IScopedHost
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         logger.Starting();
-        CancellationTokenSource? cts = null;
-        CancellationTokenSource linkedCts;
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (options.StartupTimeout != Timeout.InfiniteTimeSpan)
         {
-            cts = new CancellationTokenSource(options.StartupTimeout);
-            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken, scopeLifetime.ScopeStopping);
-        }
-        else
-        {
-            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scopeLifetime.ScopeStopping);
+            cts.CancelAfter(options.StartupTimeout);
         }
 
-        using (cts)
-        using (linkedCts)
+        cancellationToken = cts.Token;
+
+        // This may not catch exceptions.
+        await scopedHostLifetime.WaitForStartAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        List<Exception> exceptions = [];
+        hostedServices ??= Services.GetRequiredService<IEnumerable<IScopedHostedService>>();
+        hostedLifecycleServices = GetHostLifecycles(hostedServices);
+        hostStarting = true;
+        var concurrent = options.ServicesStartConcurrently;
+        var abortOnFirstException = !concurrent;
+
+        // Call StartingAsync().
+        if (hostedLifecycleServices is not null)
         {
-            var token = linkedCts.Token;
-
-            // This may not catch exceptions.
-            await scopedHostLifetime.WaitForStartAsync(token).ConfigureAwait(false);
-            token.ThrowIfCancellationRequested();
-
-            List<Exception> exceptions = [];
-            hostedServices = Services.GetRequiredService<IEnumerable<IScopedHostedService>>();
-            hostedLifecycleServices = GetHostLifecycles(hostedServices);
-            var concurrent = options.ServicesStartConcurrently;
-            var abortOnFirstException = !concurrent;
-
-            // Call StartingAsync().
-            if (hostedLifecycleServices is not null)
-            {
-                await ForeachService(
-                    hostedLifecycleServices,
-                    concurrent,
-                    abortOnFirstException,
-                    exceptions,
-                    (service, token) => service.StartingAsync(token),
-                    token)
-                    .ConfigureAwait(false);
-
-                // We do not abort on exceptions from StartingAsync.
-            }
-
-            // Call StartAsync(). We do not abort on exceptions from StartAsync.
             await ForeachService(
-                hostedServices,
+                hostedLifecycleServices,
                 concurrent,
                 abortOnFirstException,
                 exceptions,
-            async (service, token) => await service.StartAsync(token).ConfigureAwait(false),
-                {
-                    await service.StartAsync(token).ConfigureAwait(false);
-                },
-                token).ConfigureAwait(false);
+                (service, token) => service.StartingAsync(token),
+                cancellationToken)
+                .ConfigureAwait(false);
 
-            // Call StartedAsync(). We do not abort on exceptions from StartedAsync.
-            if (hostedLifecycleServices is not null)
-            {
-                await ForeachService(
-                    hostedLifecycleServices,
-                    concurrent,
-                    abortOnFirstException,
-                    exceptions,
-                    (service, token) => service.StartedAsync(token),
-                    token)
-                    .ConfigureAwait(false);
-            }
-
+            // Exceptions in StartingAsync cause startup to be aborted.
             LogAndRethrow();
+        }
 
-            // Call IScopedHostScopeLifetime.Started This catches all exceptions and does not re-throw.
+        // Call StartAsync().
+        await ForeachService(
+            hostedServices,
+            concurrent,
+            abortOnFirstException,
+            exceptions,
+            async (service, token) => await service.StartAsync(token).ConfigureAwait(false),
+            cancellationToken)
+            .ConfigureAwait(false);
+
+        // Call StartedAsync().
+        if (hostedLifecycleServices is not null)
+        {
+            await ForeachService(
+                hostedLifecycleServices,
+                concurrent,
+                abortOnFirstException,
+                exceptions,
+                (service, token) => service.StartedAsync(token),
+                cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        // Exceptions in StartedAsync cause startup to be aborted.
+        LogAndRethrow();
+
+        // Call IScopedHostScopeLifetime.Started This catches all exceptions and does not re-throw.
         scopedHostScopeLifetime.NotifyStarted();
 
-            // Log and abort if there are exceptions.
-            void LogAndRethrow()
+        // Log and abort if there are exceptions.
+        void LogAndRethrow()
+        {
+            if (exceptions.Count > 0)
             {
-                if (exceptions.Count > 0)
+                if (exceptions.Count == 1)
                 {
-                    if (exceptions.Count == 1)
-                    {
-                        // Rethrow if it's a single error
-                        var singleException = exceptions[0];
-                        logger.HostedServiceStartupFaulted(singleException);
-                        ExceptionDispatchInfo.Capture(singleException).Throw();
-                    }
-                    else
-                    {
-                        var ex = new AggregateException("One or more hosted services failed to start.", exceptions);
-                        logger.HostedServiceStartupFaulted(ex);
-                        throw ex;
-                    }
+                    // Rethrow if it's a single error
+                    var singleException = exceptions[0];
+                    logger.HostedServiceStartupFaulted(singleException);
+                    ExceptionDispatchInfo.Capture(singleException).Throw();
+                }
+                else
+                {
+                    var ex = new AggregateException("One or more hosted services failed to start.", exceptions);
+                    logger.HostedServiceStartupFaulted(ex);
+                    throw ex;
                 }
             }
         }
@@ -183,108 +174,98 @@ internal sealed class ScopedHost : IScopedHost
     {
         stopCalled = true;
         logger.Stopping();
-
-        CancellationTokenSource? cts = null;
-        CancellationTokenSource linkedCts;
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (options.ShutdownTimeout != Timeout.InfiniteTimeSpan)
         {
-            cts = new CancellationTokenSource(options.ShutdownTimeout);
-            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken);
-        }
-        else
-        {
-            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(options.ShutdownTimeout);
         }
 
-        using (cts)
-        using (linkedCts)
-        {
-            var token = linkedCts.Token;
-            List<Exception> exceptions = [];
+        cancellationToken = cts.Token;
 
-            // Started?
-            if (hostedServices is null)
-            {
+        List<Exception> exceptions = [];
+        if (!hostStarting) // Started?
+        {
             // Call IScopedScopeLifetime.ScopeStopping.
             // This catches all exceptions and does not re-throw.
             scopedHostScopeLifetime.StopScope();
-            }
-            else
+        }
+        else
+        {
+            Debug.Assert(hostedServices != null, "Hosted services are resolved when host is started.");
+
+            // Ensure hosted services are stopped in LIFO order
+            var reversedServices = hostedServices.Reverse();
+            var reversedLifetimeServices = hostedLifecycleServices?.Reverse();
+            var concurrent = options.ServicesStopConcurrently;
+
+            // Call StoppingAsync().
+            if (reversedLifetimeServices is not null)
             {
-                // Ensure hosted services are stopped in LIFO order
-                var reversedServices = hostedServices.Reverse();
-                var reversedLifetimeServices = hostedLifecycleServices?.Reverse();
-                var concurrent = options.ServicesStopConcurrently;
-
-                // Call StoppingAsync().
-                if (reversedLifetimeServices is not null)
-                {
-                    await ForeachService(
-                        reversedLifetimeServices,
-                        concurrent,
-                        abortOnFirstException: false,
-                        exceptions: exceptions,
-                        operation: (service, token) => service.StoppingAsync(token),
-                        token: token)
-                        .ConfigureAwait(false);
-                }
-
-            // Call IScopedHostScopeLifetime.ScopeStopping. This catches all exceptions
-                // and does not re-throw.
-            scopedHostScopeLifetime.StopScope();
-
-                // Call StopAsync().
                 await ForeachService(
-                    reversedServices,
+                    reversedLifetimeServices,
                     concurrent,
                     abortOnFirstException: false,
                     exceptions: exceptions,
-                    operation: (service, token) => service.StopAsync(token),
-                    token: token)
+                    operation: (service, token) => service.StoppingAsync(token),
+                    token: cancellationToken)
                     .ConfigureAwait(false);
-
-                // Call StoppedAsync().
-                if (reversedLifetimeServices is not null)
-                {
-                    await ForeachService(
-                        reversedLifetimeServices,
-                        concurrent,
-                        abortOnFirstException: false,
-                        exceptions: exceptions,
-                        operation: (service, token) => service.StoppedAsync(token),
-                        token: token)
-                        .ConfigureAwait(false);
-                }
             }
+
+            // Call IScopedHostScopeLifetime.ScopeStopping. This catches all exceptions
+            // and does not re-throw.
+            scopedHostScopeLifetime.StopScope();
+
+            // Call StopAsync().
+            await ForeachService(
+                reversedServices,
+                concurrent,
+                abortOnFirstException: false,
+                exceptions,
+                (service, token) => service.StopAsync(token),
+                cancellationToken)
+                .ConfigureAwait(false);
+
+            // Call StoppedAsync().
+            if (reversedLifetimeServices is not null)
+            {
+                await ForeachService(
+                    reversedLifetimeServices,
+                    concurrent,
+                    abortOnFirstException: false,
+                    exceptions,
+                    (service, token) => service.StoppedAsync(token),
+                    cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
 
         // Call IScopedHostScopeLifetime.Stopped This catches all exceptions and does not re-throw.
         scopedHostScopeLifetime.NotifyStopped();
 
-            // This may not catch exceptions, so we do it here.
-            try
-            {
-                await scopedHostLifetime.StopAsync(token).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                exceptions.Add(ex);
-            }
+        // This may not catch exceptions, so we do it here.
+        try
+        {
+            await scopedHostLifetime.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
 
-            if (exceptions.Count > 0)
+        if (exceptions.Count > 0)
+        {
+            if (exceptions.Count == 1)
             {
-                if (exceptions.Count == 1)
-                {
-                    // Rethrow if it's a single error
-                    var singleException = exceptions[0];
-                    logger.StoppedWithException(singleException);
-                    ExceptionDispatchInfo.Capture(singleException).Throw();
-                }
-                else
-                {
-                    var ex = new AggregateException("One or more hosted services failed to stop.", exceptions);
-                    logger.StoppedWithException(ex);
-                    throw ex;
-                }
+                // Rethrow if it's a single error
+                var singleException = exceptions[0];
+                logger.StoppedWithException(singleException);
+                ExceptionDispatchInfo.Capture(singleException).Throw();
+            }
+            else
+            {
+                var ex = new AggregateException("One or more hosted services failed to stop.", exceptions);
+                logger.StoppedWithException(ex);
+                throw ex;
             }
         }
 
@@ -292,12 +273,12 @@ internal sealed class ScopedHost : IScopedHost
     }
 
     private static async Task ForeachService<T>(
-        IEnumerable<T> services,
-        bool concurrent,
-        bool abortOnFirstException,
-        List<Exception> exceptions,
-        Func<T, CancellationToken, Task> operation,
-        CancellationToken token)
+            IEnumerable<T> services,
+            bool concurrent,
+            bool abortOnFirstException,
+            List<Exception> exceptions,
+            Func<T, CancellationToken, Task> operation,
+            CancellationToken token)
     {
         if (concurrent)
         {
@@ -329,7 +310,7 @@ internal sealed class ScopedHost : IScopedHost
                 {
                     // The task encountered an await; add it to a list to run concurrently.
                     tasks ??= [];
-                    tasks.Add(Task.Run(() => task, token));
+                    tasks.Add(task);
                 }
             }
 
@@ -343,7 +324,15 @@ internal sealed class ScopedHost : IScopedHost
                 }
                 catch (Exception ex)
                 {
-                    exceptions.AddRange(groupedTasks.Exception?.InnerExceptions ?? new[] { ex }.AsEnumerable());
+                    if (groupedTasks.IsFaulted
+                        && groupedTasks.Exception != null)
+                    {
+                        exceptions.AddRange(groupedTasks.Exception.InnerExceptions);
+                    }
+                    else
+                    {
+                        exceptions.Add(ex);
+                    }
                 }
             }
         }
