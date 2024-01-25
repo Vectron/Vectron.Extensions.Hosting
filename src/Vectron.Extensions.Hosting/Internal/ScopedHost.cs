@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -59,10 +58,12 @@ internal sealed class ScopedHost : IScopedHost
     }
 
     /// <summary>
-    /// Order: IHostLifetime.WaitForStartAsync (can abort chain)
-    /// Services.GetService{IStartupValidator}().Validate() (can abort chain)
-    /// IHostedLifecycleService.StartingAsync IHostedService.Start
-    /// IHostedLifecycleService.StartedAsync IHostApplicationLifetime.ApplicationStarted.
+    /// Order:
+    ///  IHostLifetime.WaitForStartAsync
+    ///  IHostedLifecycleService.StartingAsync
+    ///  IHostedService.Start
+    ///  IHostedLifecycleService.StartedAsync
+    ///  IScopedHostScopeLifetime.Started.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for stopping the startup.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
@@ -167,13 +168,16 @@ internal sealed class ScopedHost : IScopedHost
     }
 
     /// <summary>
-    /// Order: IHostedLifecycleService.StoppingAsync IHostApplicationLifetime.ApplicationStopping
-    /// IHostedService.Stop IHostedLifecycleService.StoppedAsync
-    /// IHostApplicationLifetime.ApplicationStopped IHostLifetime.StopAsync.
+    /// Order:
+    ///  IScopedScopeLifetime.ScopeStopping;
+    ///  IHostedLifecycleService.StoppingAsync
+    ///  IScopedHostScopeLifetime.ScopeStopping
+    ///  IHostedService.Stop
+    ///  IHostedLifecycleService.StoppedAsync
+    ///  IHostLifetime.StopAsync
+    ///  IScopedHostScopeLifetime.Stopped.
     /// </summary>
-    /// <param name="cancellationToken">
-    /// A <see cref="CancellationToken"/> for aborting the stop process.
-    /// </param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the graceful stopping.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
@@ -201,7 +205,7 @@ internal sealed class ScopedHost : IScopedHost
             // Started?
             if (hostedServices is null)
             {
-            // Call IHostApplicationLifetime.ApplicationStopping.
+            // Call IScopedScopeLifetime.ScopeStopping.
             // This catches all exceptions and does not re-throw.
             scopedHostScopeLifetime.StopScope();
             }
