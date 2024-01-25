@@ -19,7 +19,7 @@ internal sealed class ScopedHost : IScopedHost
     private readonly ILogger<ScopedHost> logger;
     private readonly ScopedHostOptions options;
     private readonly IScopedHostLifetime scopedHostLifetime;
-    private readonly ScopeLifetime scopeLifetime;
+    private readonly ScopedHostScopeLifetime scopedHostScopeLifetime;
     private IEnumerable<IScopedHostedLifecycleService>? hostedLifecycleServices;
     private IEnumerable<IScopedHostedService>? hostedServices;
     private volatile bool stopCalled;
@@ -28,13 +28,13 @@ internal sealed class ScopedHost : IScopedHost
     /// Initializes a new instance of the <see cref="ScopedHost"/> class.
     /// </summary>
     /// <param name="services">The <see cref="IServiceProvider"/> for creating services.</param>
-    /// <param name="scopeLifetime">The scope lifetime.</param>
+    /// <param name="scopedHostScopeLifetime">The scope lifetime.</param>
     /// <param name="logger">A <see cref="ILogger"/>.</param>
     /// <param name="scopedHostLifetime">A <see cref="IScopedHostLifetime"/>.</param>
     /// <param name="options">The <see cref="ScopedHostOptions"/> for this host.</param>
     public ScopedHost(
         IServiceProvider services,
-        IScopedHostScopeLifetime scopeLifetime,
+        IScopedHostScopeLifetime scopedHostScopeLifetime,
         ILogger<ScopedHost> logger,
         IScopedHostLifetime scopedHostLifetime,
         IOptions<ScopedHostOptions> options)
@@ -45,12 +45,8 @@ internal sealed class ScopedHost : IScopedHost
         ArgumentNullException.ThrowIfNull(scopedHostLifetime);
 
         Services = services;
-        this.scopeLifetime = (scopeLifetime as ScopeLifetime)!;
-        if (scopeLifetime is null)
-        {
-            throw new ArgumentException("Replacing IScopedHostScopeLifetime is not supported.", nameof(scopeLifetime));
-        }
-
+        this.scopedHostScopeLifetime = (scopedHostScopeLifetime as ScopedHostScopeLifetime)
+            ?? throw new ArgumentException("Replacing IScopedHostScopeLifetime is not supported.", nameof(scopedHostScopeLifetime));
         this.logger = logger;
         this.scopedHostLifetime = scopedHostLifetime;
         this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
@@ -143,7 +139,7 @@ internal sealed class ScopedHost : IScopedHost
             LogAndRethrow();
 
             // Call IScopedHostScopeLifetime.Started This catches all exceptions and does not re-throw.
-            scopeLifetime.NotifyStarted();
+        scopedHostScopeLifetime.NotifyStarted();
 
             // Log and abort if there are exceptions.
             void LogAndRethrow()
@@ -205,9 +201,9 @@ internal sealed class ScopedHost : IScopedHost
             // Started?
             if (hostedServices is null)
             {
-                // Call IHostApplicationLifetime.ApplicationStopping. This catches all exceptions
-                // and does not re-throw.
-                scopeLifetime.StopScope();
+            // Call IHostApplicationLifetime.ApplicationStopping.
+            // This catches all exceptions and does not re-throw.
+            scopedHostScopeLifetime.StopScope();
             }
             else
             {
@@ -229,9 +225,9 @@ internal sealed class ScopedHost : IScopedHost
                         .ConfigureAwait(false);
                 }
 
-                // Call IHostApplicationLifetime.ApplicationStopping. This catches all exceptions
+            // Call IScopedHostScopeLifetime.ScopeStopping. This catches all exceptions
                 // and does not re-throw.
-                scopeLifetime.StopScope();
+            scopedHostScopeLifetime.StopScope();
 
                 // Call StopAsync().
                 await ForeachService(
@@ -257,8 +253,8 @@ internal sealed class ScopedHost : IScopedHost
                 }
             }
 
-            // Call IHostApplicationLifetime.Stopped This catches all exceptions and does not re-throw.
-            scopeLifetime.NotifyStopped();
+        // Call IScopedHostScopeLifetime.Stopped This catches all exceptions and does not re-throw.
+        scopedHostScopeLifetime.NotifyStopped();
 
             // This may not catch exceptions, so we do it here.
             try

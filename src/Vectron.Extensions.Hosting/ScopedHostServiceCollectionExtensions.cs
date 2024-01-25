@@ -17,7 +17,7 @@ public static class ScopedHostServiceCollectionExtensions
     /// <returns>The original <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection AddScopedHost(this IServiceCollection services)
     {
-        services.TryAddScoped<IScopedHostScopeLifetime, ScopeLifetime>();
+        services.TryAddScoped<IScopedHostScopeLifetime, ScopedHostScopeLifetime>();
         services.TryAddScoped<IScopedHostLifetime, NullLifetime>();
         services.TryAddScoped<IScopedHost, ScopedHost>();
         return services;
