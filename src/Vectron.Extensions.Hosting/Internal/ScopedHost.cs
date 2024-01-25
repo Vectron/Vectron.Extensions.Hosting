@@ -338,9 +338,9 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
     {
         if (concurrent)
         {
-            // The beginning synchronous portions of the implementations are run serially in
-            // registration order for performance since it is common to return Task.Completed as a
-            // No operation. Any subsequent asynchronous portions are grouped together run concurrently.
+            // The beginning synchronous portions of the implementations are run serially in registration order for
+            // performance since it is common to return Task.Completed as a noop.
+            // Any subsequent asynchronous portions are grouped together and run concurrently.
             List<Task>? tasks = null;
             foreach (var service in services)
             {
@@ -364,6 +364,7 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
                 }
                 else
                 {
+                    // The task encountered an await; add it to a list to run concurrently.
                     tasks ??= [];
                     tasks.Add(Task.Run(() => task, token));
                 }
