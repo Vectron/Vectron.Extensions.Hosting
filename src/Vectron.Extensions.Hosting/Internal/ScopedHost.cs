@@ -11,7 +11,6 @@ namespace Vectron.Extensions.Hosting.Internal;
 /// <summary>
 /// Implementation of a <see cref="IScopedHost"/>.
 /// </summary>
-[DebuggerDisplay("{DebuggerToString(),nq}")]
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Design",
     "MA0051:Method is too long",
