@@ -102,7 +102,6 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for stopping the startup.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "Style cop hasn't caught up yet.")]
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         logger.Starting();
@@ -217,7 +216,6 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
     /// A <see cref="CancellationToken"/> for aborting the stop process.
     /// </param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "Style cop hasn't caught up yet.")]
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         stopCalled = true;
@@ -330,7 +328,6 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
         logger.Stopped();
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "Style cop hasn't caught up yet.")]
     private static async Task ForeachService<T>(
         IEnumerable<T> services,
         bool concurrent,
@@ -406,7 +403,6 @@ internal sealed partial class ScopedHost : IScopedHost, IAsyncDisposable
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "Style cop hasn't caught up yet.")]
     private static List<IScopedHostedLifecycleService>? GetHostLifecycles(IEnumerable<IScopedHostedService> hostedServices)
     {
         List<IScopedHostedLifecycleService>? result = null;
