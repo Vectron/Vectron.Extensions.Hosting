@@ -14,7 +14,7 @@ namespace Vectron.Extensions.Hosting.Internal;
     "Design",
     "MA0051:Method is too long",
     Justification = "Code copied from https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Hosting/src/Internal/Host.cs")]
-internal sealed partial class ScopedHost : IScopedHost
+internal sealed class ScopedHost : IScopedHost
 {
     private readonly ILogger<ScopedHost> logger;
     private readonly ScopedHostOptions options;
