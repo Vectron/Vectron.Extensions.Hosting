@@ -4,6 +4,7 @@
     <LangVersion>default</LangVersion>
     <Deterministic>true</Deterministic>
     <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors></WarningsAsErrors>
     <WarningsNotAsErrors>MA0026</WarningsNotAsErrors>
@@ -11,7 +12,6 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <!--Package settings-->
