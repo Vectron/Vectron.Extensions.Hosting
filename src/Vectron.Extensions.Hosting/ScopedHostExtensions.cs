@@ -37,5 +37,9 @@ public static class ScopedHostExtensions
             state => (state as TaskCompletionSource)!.SetResult(),
             waitForStop);
         await waitForStop.Task.ConfigureAwait(false);
+
+        // Host will use its default ShutdownTimeout if none is specified.
+        // The cancellation token may have been triggered to unblock waitForStop. Don't pass it here because that would trigger an abortive shutdown.
+        await host.StopAsync(CancellationToken.None).ConfigureAwait(false);
     }
 }
