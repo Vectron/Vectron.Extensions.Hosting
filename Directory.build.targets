@@ -4,6 +4,6 @@
     <ItemGroup>
       <WpfTempDirectories Include="$([System.IO.Directory]::GetDirectories('$(RepositoryRootDirectory)bin\$(Configuration)','$(MSBuildProjectName)_*_wpftmp'))" />
     </ItemGroup>
-    <RemoveDir Directories="@(WpfTempDirectories)" />
+    <RemoveDir Directories="@(WpfTempDirectories)" ContinueOnError="true" />
   </Target>
 </Project>
