@@ -8,10 +8,10 @@ public interface IScopeLifeTime
     /// <summary>
     /// An event that is triggered when a scope is created.
     /// </summary>
-    event EventHandler<ScopeChangedEventArgs>? ScopeCreated;
+    public event EventHandler<ScopeChangedEventArgs>? ScopeCreated;
 
     /// <summary>
     /// An event that is triggered when a scope is being destroyed.
     /// </summary>
-    event EventHandler<ScopeChangedEventArgs>? ScopeDestroying;
+    public event EventHandler<ScopeChangedEventArgs>? ScopeDestroying;
 }
