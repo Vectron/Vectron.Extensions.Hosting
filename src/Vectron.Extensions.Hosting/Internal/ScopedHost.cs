@@ -57,12 +57,8 @@ internal sealed class ScopedHost : IScopedHost
     }
 
     /// <summary>
-    /// Order:
-    ///  IHostLifetime.WaitForStartAsync
-    ///  IHostedLifecycleService.StartingAsync
-    ///  IHostedService.Start
-    ///  IHostedLifecycleService.StartedAsync
-    ///  IScopedHostScopeLifetime.Started.
+    /// Order: IHostLifetime.WaitForStartAsync IHostedLifecycleService.StartingAsync
+    /// IHostedService.Start IHostedLifecycleService.StartedAsync IScopedHostScopeLifetime.Started.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for stopping the startup.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
@@ -91,7 +87,7 @@ internal sealed class ScopedHost : IScopedHost
         // Call StartingAsync().
         if (hostedLifecycleServices is not null)
         {
-            await ForeachService(
+            await ForeachServiceAsync(
                 hostedLifecycleServices,
                 concurrent,
                 abortOnFirstException,
@@ -105,7 +101,7 @@ internal sealed class ScopedHost : IScopedHost
         }
 
         // Call StartAsync().
-        await ForeachService(
+        await ForeachServiceAsync(
             hostedServices,
             concurrent,
             abortOnFirstException,
@@ -117,7 +113,7 @@ internal sealed class ScopedHost : IScopedHost
         // Call StartedAsync().
         if (hostedLifecycleServices is not null)
         {
-            await ForeachService(
+            await ForeachServiceAsync(
                 hostedLifecycleServices,
                 concurrent,
                 abortOnFirstException,
@@ -158,16 +154,13 @@ internal sealed class ScopedHost : IScopedHost
     }
 
     /// <summary>
-    /// Order:
-    ///  IScopedScopeLifetime.ScopeStopping;
-    ///  IHostedLifecycleService.StoppingAsync
-    ///  IScopedHostScopeLifetime.ScopeStopping
-    ///  IHostedService.Stop
-    ///  IHostedLifecycleService.StoppedAsync
-    ///  IHostLifetime.StopAsync
-    ///  IScopedHostScopeLifetime.Stopped.
+    /// Order: IScopedScopeLifetime.ScopeStopping; IHostedLifecycleService.StoppingAsync
+    /// IScopedHostScopeLifetime.ScopeStopping IHostedService.Stop
+    /// IHostedLifecycleService.StoppedAsync IHostLifetime.StopAsync IScopedHostScopeLifetime.Stopped.
     /// </summary>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the graceful stopping.</param>
+    /// <param name="cancellationToken">
+    /// A <see cref="CancellationToken"/> to cancel the graceful stopping.
+    /// </param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
@@ -183,8 +176,7 @@ internal sealed class ScopedHost : IScopedHost
         List<Exception> exceptions = [];
         if (!hostStarting)
         {
-            // Call IScopedScopeLifetime.ScopeStopping.
-            // This catches all exceptions and does not re-throw.
+            // Call IScopedScopeLifetime.ScopeStopping. This catches all exceptions and does not re-throw.
             scopedHostScopeLifetime.StopScope();
         }
         else
@@ -199,7 +191,7 @@ internal sealed class ScopedHost : IScopedHost
             // Call StoppingAsync().
             if (reversedLifetimeServices is not null)
             {
-                await ForeachService(
+                await ForeachServiceAsync(
                     reversedLifetimeServices,
                     concurrent,
                     abortOnFirstException: false,
@@ -209,12 +201,11 @@ internal sealed class ScopedHost : IScopedHost
                     .ConfigureAwait(false);
             }
 
-            // Call IScopedHostScopeLifetime.ScopeStopping. This catches all exceptions
-            // and does not re-throw.
+            // Call IScopedHostScopeLifetime.ScopeStopping. This catches all exceptions and does not re-throw.
             scopedHostScopeLifetime.StopScope();
 
             // Call StopAsync().
-            await ForeachService(
+            await ForeachServiceAsync(
                 reversedServices,
                 concurrent,
                 abortOnFirstException: false,
@@ -226,7 +217,7 @@ internal sealed class ScopedHost : IScopedHost
             // Call StoppedAsync().
             if (reversedLifetimeServices is not null)
             {
-                await ForeachService(
+                await ForeachServiceAsync(
                     reversedLifetimeServices,
                     concurrent,
                     abortOnFirstException: false,
@@ -270,7 +261,7 @@ internal sealed class ScopedHost : IScopedHost
         logger.Stopped();
     }
 
-    private static async Task ForeachService<T>(
+    private static async Task ForeachServiceAsync<T>(
             IEnumerable<T> services,
             bool concurrent,
             bool abortOnFirstException,
@@ -280,9 +271,9 @@ internal sealed class ScopedHost : IScopedHost
     {
         if (concurrent)
         {
-            // The beginning synchronous portions of the implementations are run serially in registration order for
-            // performance since it is common to return Task.Completed as a noop.
-            // Any subsequent asynchronous portions are grouped together and run concurrently.
+            // The beginning synchronous portions of the implementations are run serially in
+            // registration order for performance since it is common to return Task.Completed as a
+            // noop. Any subsequent asynchronous portions are grouped together and run concurrently.
             List<Task>? tasks = null;
             foreach (var service in services)
             {
