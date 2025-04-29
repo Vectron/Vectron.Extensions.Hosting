@@ -7,7 +7,7 @@ namespace Vectron.Extensions.Hosting.Internal;
 /// </summary>
 /// <param name="scopeFactory">The <see cref="IServiceScopeFactory"/>.</param>
 /// <param name="scopeLifeTime">The <see cref="IScopeLifeTime"/>.</param>
-internal class ScopedHostFactory(IServiceScopeFactory scopeFactory, IScopeLifeTime scopeLifeTime) : IScopedHostFactory
+internal sealed class ScopedHostFactory(IServiceScopeFactory scopeFactory, IScopeLifeTime scopeLifeTime) : IScopedHostFactory
 {
     private readonly ScopeLifeTime scopeLifeTime = scopeLifeTime as ScopeLifeTime
         ?? throw new InvalidOperationException("Replacing IScopeLifeTime is not supported.");
