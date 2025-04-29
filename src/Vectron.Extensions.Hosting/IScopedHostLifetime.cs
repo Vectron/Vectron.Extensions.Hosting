@@ -10,7 +10,7 @@ public interface IScopedHostLifetime
     /// </summary>
     /// <param name="cancellationToken">Used to indicate when stop should no longer be graceful.</param>
     /// <returns>A <see cref="Task"/>.</returns>
-    Task StopAsync(CancellationToken cancellationToken);
+    public Task StopAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Called at the start of <see cref="IScopedHost.StartAsync(CancellationToken)"/> which will wait until it's complete before
@@ -18,5 +18,5 @@ public interface IScopedHostLifetime
     /// </summary>
     /// <param name="cancellationToken">Used to abort program start.</param>
     /// <returns>A <see cref="Task"/>.</returns>
-    Task WaitForStartAsync(CancellationToken cancellationToken);
+    public Task WaitForStartAsync(CancellationToken cancellationToken);
 }

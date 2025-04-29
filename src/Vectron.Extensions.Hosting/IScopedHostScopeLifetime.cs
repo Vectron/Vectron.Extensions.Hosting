@@ -8,7 +8,7 @@ public interface IScopedHostScopeLifetime
     /// <summary>
     /// Gets a <see cref="CancellationToken"/> that is triggered when the scope host has fully started.
     /// </summary>
-    CancellationToken ScopeStarted
+    public CancellationToken ScopeStarted
     {
         get;
     }
@@ -17,7 +17,7 @@ public interface IScopedHostScopeLifetime
     /// Gets a <see cref="CancellationToken"/> that is Triggered when the scope host has completed a
     /// graceful shutdown. The scope will not exit until all callbacks registered on this token have completed.
     /// </summary>
-    CancellationToken ScopeStopped
+    public CancellationToken ScopeStopped
     {
         get;
     }
@@ -26,7 +26,7 @@ public interface IScopedHostScopeLifetime
     /// Gets a <see cref="CancellationToken"/> that is Triggered when the scope host is starting a
     /// graceful shutdown. Shutdown will block until all callbacks registered on this token have completed.
     /// </summary>
-    CancellationToken ScopeStopping
+    public CancellationToken ScopeStopping
     {
         get;
     }
@@ -34,5 +34,5 @@ public interface IScopedHostScopeLifetime
     /// <summary>
     /// Requests termination of the current scope.
     /// </summary>
-    void StopScope();
+    public void StopScope();
 }

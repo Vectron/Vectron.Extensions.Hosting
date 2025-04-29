@@ -21,5 +21,5 @@ public interface IScopedHostFactory
     /// <param name="setupAction">A function that will be run after the <see cref="IServiceScope"/> is created, but before the <see cref="IScopedHost"/> is started.</param>
     /// <param name="cancellationToken">The token to trigger shutdown.</param>
     /// <returns>A <see cref="Task"/> that will be completed when the <see cref="IScopedHost"/> stops.</returns>
-    Task RunScopedHostAsync(SetupScopeFunc setupAction, CancellationToken cancellationToken);
+    public Task RunScopedHostAsync(SetupScopeFunc setupAction, CancellationToken cancellationToken);
 }

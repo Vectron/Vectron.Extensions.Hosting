@@ -1,9 +1,8 @@
 namespace Vectron.Extensions.Hosting;
 
 /// <summary>
-/// Defines methods that are run before or after
-/// <see cref="IScopedHostedService.StartAsync(CancellationToken)"/> and
-/// <see cref="IScopedHostedService.StopAsync(CancellationToken)"/>.
+/// Defines methods that are run before or after <see
+/// cref="IScopedHostedService.StartAsync(CancellationToken)"/> and <see cref="IScopedHostedService.StopAsync(CancellationToken)"/>.
 /// </summary>
 public interface IScopedHostedLifecycleService : IScopedHostedService
 {
@@ -12,26 +11,26 @@ public interface IScopedHostedLifecycleService : IScopedHostedService
     /// </summary>
     /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
     /// <returns>A <see cref="Task"/> that represents the asynchronous operation.</returns>
-    Task StartedAsync(CancellationToken cancellationToken);
+    public Task StartedAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Triggered before <see cref="IScopedHostedService.StartAsync(CancellationToken)"/>.
     /// </summary>
     /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
     /// <returns>A <see cref="Task"/> that represents the asynchronous operation.</returns>
-    Task StartingAsync(CancellationToken cancellationToken);
+    public Task StartingAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Triggered after <see cref="IScopedHostedService.StopAsync(CancellationToken)"/>.
     /// </summary>
     /// <param name="cancellationToken">Indicates that the stop process has been aborted.</param>
     /// <returns>A <see cref="Task"/> that represents the asynchronous operation.</returns>
-    Task StoppedAsync(CancellationToken cancellationToken);
+    public Task StoppedAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Triggered before <see cref="IScopedHostedService.StopAsync(CancellationToken)"/>.
     /// </summary>
     /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
     /// <returns>A <see cref="Task"/> that represents the asynchronous operation.</returns>
-    Task StoppingAsync(CancellationToken cancellationToken);
+    public Task StoppingAsync(CancellationToken cancellationToken);
 }
