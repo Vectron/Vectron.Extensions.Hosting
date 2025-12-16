@@ -42,7 +42,7 @@ jobs:
         8.0.x
         9.0.x
         10.0.x
-      solution_file: Vectron.Extensions.Hosting.sln
+      solution_file: Vectron.Extensions.Hosting.slnx
 
   call-deploy:
     needs: call-build-test
@@ -55,7 +55,7 @@ jobs:
         8.0.x
         9.0.x
         10.0.x
-      solution_file: Vectron.Extensions.Hosting.sln
+      solution_file: Vectron.Extensions.Hosting.slnx
     secrets:
       NUGET_KEY: ${{ secrets.NUGET_KEY }}
 
