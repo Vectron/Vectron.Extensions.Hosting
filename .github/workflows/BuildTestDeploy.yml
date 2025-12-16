@@ -13,7 +13,7 @@ on:
       - '.runsettings'
       - 'LICENSE.txt'
       - 'README.md'
-  
+
   pull_request:
     branches:
       - 'main'
@@ -41,6 +41,7 @@ jobs:
       dotnet_version: |
         8.0.x
         9.0.x
+        10.0.x
       solution_file: Vectron.Extensions.Hosting.sln
 
   call-deploy:
@@ -53,6 +54,7 @@ jobs:
       dotnet_version: |
         8.0.x
         9.0.x
+        10.0.x
       solution_file: Vectron.Extensions.Hosting.sln
     secrets:
       NUGET_KEY: ${{ secrets.NUGET_KEY }}
